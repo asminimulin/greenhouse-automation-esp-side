@@ -7,6 +7,7 @@
 #include "greenhouse/greenhouse_cache.hpp"
 #include "connector/arduino_connector.hpp"
 #include "logging/logging.hpp"
+#include "config.hpp"
 
 
 ESP8266WebServer server(80);
@@ -24,16 +25,10 @@ void cacheLoader();
 
 void setup() {
   Serial.begin(57600);
-  // Serial.println("Hello");
   logging::setup(logging::NOTHING, &Serial);
   delay(5000);
-  WiFi.begin("HotspotRedmiMy", "RedmiPassword");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    // Serial.println("Waiting for connection...");
-  }
-  // Serial.print("Connected! IP: ");
-  // Serial.println(WiFi.localIP());
+  
+  WiFi.softAP(AP_SSID, AP_PASSWORD);
   server.on("/measures", sendMeasures);
   server.begin();
 }
