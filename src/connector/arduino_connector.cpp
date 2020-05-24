@@ -8,7 +8,7 @@ ArduinoConnector::ArduinoConnector(Stream* stream):
 
 
 std::vector<uint8_t> ArduinoConnector::query(Command command) {
-    static constexpr uint32_t maxDelay = 0;
+    static constexpr uint32_t maxDelay = 1000;
     stream_->write(command);
     uint8_t code = readSync(maxDelay);
     if (code != 0) {

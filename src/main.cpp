@@ -15,7 +15,13 @@ ArduinoConnector arduinoConnector(&Serial);
 GreenhouseCache cache;
 
 
-/**** Handlers ****/
+/**** Handlers API ****/
+void apiGetMeasures();
+// void apiGetSettings();
+// void apiSetSettings();
+
+
+/**** Handlers view ****/
 void sendMeasures();
 
 
@@ -27,9 +33,25 @@ void setup() {
   Serial.begin(57600);
   logging::setup(logging::NOTHING, &Serial);
   delay(5000);
+
+  Serial.print("AP_SSID: ");
+  Serial.println(AP_SSID);
+  Serial.print("AP_PASWORD: ");
+  Serial.println(AP_PASSWORD);
   
   WiFi.softAP(AP_SSID, AP_PASSWORD);
-  server.on("/measures", sendMeasures);
+  // WiFi.begin(AP_SSID, AP_PASSWORD);
+  // while (WiFi.status() != WL_CONNECTED) {
+  //   delay(50);
+  // }
+
+  Serial.print(F("Ip address: "));
+  Serial.println(WiFi.localIP());
+
+  server.on("/api/measures", HTTP_GET, apiGetMeasures);
+  server.on("/measures.html", HTTP_GET, sendMeasures);
+  // server.on("api/settings", HTTP_GET, apiGetSettings);
+  // server.on("api/settings", HTTP_POST, apiSetSettings);
   server.begin();
 }
 
@@ -37,20 +59,6 @@ void setup() {
 void loop() {
   server.handleClient();
   cacheLoader();
-}
-
-
-void sendMeasures() {
-  StaticJsonDocument<1024> doc;
-  doc[F("first")][F("yellowTemperature")] = cache.first.yellowTemperature;
-  doc[F("first")][F("greenTemperature")] = cache.first.greenTemperature;
-  doc[F("first")][F("outsideTemperature")] = cache.first.outsideTemperature;
-  doc[F("second")][F("yellowTemperature")] = cache.second.yellowTemperature;
-  doc[F("second")][F("greenTemperature")] = cache.second.greenTemperature;
-  doc[F("second")][F("outsideTemperature")] = cache.second.outsideTemperature;
-  char result[1024];
-  serializeJson(doc, result);
-  server.send(200, F("application/json"), result);
 }
 
 
@@ -65,12 +73,101 @@ void cacheLoader() {
   logging::debug(int(data.size()));
   if (data.size() == sizeof(cache)) {
     std::size_t pos = 0;
-    cache.first.yellowTemperature = data[pos++];
-    cache.first.greenTemperature = data[pos++];
-    cache.first.outsideTemperature = data[pos++];
-    cache.second.yellowTemperature = data[pos++];
-    cache.second.greenTemperature = data[pos++];
-    cache.second.outsideTemperature = data[pos++];
+    cache.outsideTemperature = data[pos++];
+    memcpy(&(cache.first), &data[pos], sizeof(cache.first));
+    pos += sizeof(cache.first);
+    memcpy(&(cache.second), &data[pos], sizeof(cache.second));
   }
   nextTimestamp = millis() + timeInterval;
+}
+
+
+void apiGetMeasures() {
+  StaticJsonDocument<2048> doc;
+  doc[F("outsideTemperature")] = cache.outsideTemperature;
+  Measures* c[] = {&(cache.first), &(cache.second)};
+  const __FlashStringHelper* names[] = {F("first"), F("second")};
+  for (int i = 0; i < 2; ++i) {
+    Measures* m = c[i];
+    auto name = names[i];
+    doc[name][F("yellowTemperature")] = m->yellowTemperature;
+    doc[name][F("greenTemperature")] = m->greenTemperature;
+    doc[name][F("ventStatus")] = m->ventStatus;
+    doc[name][F("yellowWindowPercent")] = m->yellowWindowPercent;
+    doc[name][F("greenWindowPercent")] = m->greenWindowPercent;
+    doc[name][F("blueHumidity")] = m->blueHumidity;
+    doc[name][F("blueWateringStatus")] = m->blueWateringStatus;
+    doc[name][F("redHumidity")] = m->redHumidity;
+    doc[name][F("redWateringStatus")] = m->redWateringStatus;
+  }
+  char result[2048];
+  serializeJson(doc, result);
+  server.send(200, F("application/json"), result);
+}
+
+
+char buffer[2048];
+void sendMeasures() {
+  auto ON = "ON";
+  auto OFF = "OFF";
+  auto format = "<html>"
+    "<head>"
+    "<meta charset='UTF-8' />"
+    "</head>"
+    "<body>"
+    "<p>Наружняя температура: %d</p>"
+    
+    "<h3>Первая теплица</h3>"
+    "<p>Жёлтая температура: %d</p>"
+    "<p>Зелёная температура: %d</p>"
+    "<p>Вентилятор: %s</p>"
+    "<p>Жёлтое окно: %d%%</p>"
+    "<p>Зелёная окно: %d%%</p>"
+    "<p>Влажность синяя: %d%%</p>"
+    "<p>Синий полив: %s</p>"
+    "<p>Влажность красная: %d%%</p>"
+    "<p>Красный полив: %s</p>"
+    
+    "<h3>Вторая теплица</h3>"
+    "<p>Жёлтая температура: %d</p>"
+    "<p>Зелёная температура: %d</p>"
+    "<p>Вентилятор: %s</p>"
+    "<p>Жёлтое окно: %d%%</p>"
+    "<p>Зелёная окно: %d%%</p>"
+    "<p>Влажность синяя: %d%%</p>"
+    "<p>Синий полив: %s</p>"
+    "<p>Влажность красная: %d%%</p>"
+    "<p>Красный полив: %s</p>"
+    "</body>"
+    "<style>"
+    "body {"
+      "font-size: 40px;"
+    "}"
+    "</style>"
+    "</html>";
+  sprintf(buffer, format
+    , int(cache.outsideTemperature)
+
+    , int(cache.first.yellowTemperature)
+    , int(cache.first.greenTemperature)
+    , (cache.first.ventStatus ? ON : OFF)
+    , int(cache.first.yellowWindowPercent)
+    , int(cache.first.greenWindowPercent)
+    , int(cache.first.blueHumidity)
+    , (cache.first.blueWateringStatus ? ON : OFF)
+    , int(cache.first.redHumidity)
+    , (cache.first.redWateringStatus ? ON : OFF)
+
+    , int(cache.second.yellowTemperature)
+    , int(cache.second.greenTemperature)
+    , (cache.second.ventStatus ? ON : OFF)
+    , int(cache.second.yellowWindowPercent)
+    , int(cache.second.greenWindowPercent)
+    , int(cache.second.blueHumidity)
+    , (cache.second.blueWateringStatus ? ON : OFF)
+    , int(cache.second.redHumidity)
+    , (cache.second.redWateringStatus ? ON : OFF)
+  );
+  // sprintf(buffer, "Hello %s", "alexey");
+  server.send(200, "text/html", buffer);
 }
