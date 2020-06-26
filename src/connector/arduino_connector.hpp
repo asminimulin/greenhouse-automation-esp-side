@@ -10,11 +10,14 @@
 class ArduinoConnector {
 public:
     enum Command: uint8_t {
+        COMMAND_PING = '0',
         COMMAND_GET_MEASURES = '1',
     };
 
     ArduinoConnector(Stream* stream);
-    std::vector<uint8_t> query(Command command);
+    std::vector<uint8_t> query(Command command, int&);
+
+    void loop();
 
 private:
     Stream* stream_;

@@ -1,29 +1,34 @@
 #include <Arduino.h>
 
 #include "arduino_connector.hpp"
-
+#include <logging/logging.hpp>
 
 ArduinoConnector::ArduinoConnector(Stream* stream):
     stream_(stream) {}
 
 
-std::vector<uint8_t> ArduinoConnector::query(Command command) {
-    static constexpr uint32_t maxDelay = 1000;
+std::vector<uint8_t> ArduinoConnector::query(Command command, int& readSuccessfully) {
+    static constexpr uint32_t maxDelay = 50;
+    readSuccessfully = 0;
     stream_->write(command);
-    uint8_t code = readSync(maxDelay);
-    if (code != 0) {
+    uint8_t code = readSync(maxDelay * 5);
+    if (code == EOS) {
         return {};
     }
+    readSuccessfully++;
+    if (code != 0) return {};
     uint8_t len = readSync(maxDelay);
     if (len == EOS) {
         return {};
     }
+    readSuccessfully++;
     std::vector<uint8_t> response(len);
     for (std::size_t i = 0; i < len; ++i) {
         auto code = readSync(maxDelay);
         if (code == EOS) {
-            return {};
+            return response;
         }
+        readSuccessfully++;
         response[i] = code;
     }
     return response;
@@ -32,11 +37,21 @@ std::vector<uint8_t> ArduinoConnector::query(Command command) {
 
 uint8_t ArduinoConnector::readSync(uint32_t timeout) {
     uint32_t stop = (timeout == 0) ? ~0u : millis() + timeout;
-    if (timeout == 0) stop = ~0u;
-    else stop = millis() + timeout;
     while (!stream_->available() && millis() < stop) {} 
     if (!stream_->available()) {
         return EOS;
     }
     return static_cast<uint8_t>(stream_->read());
+}
+
+void ArduinoConnector::loop() {
+    if (stream_->available()) {
+        Command cmd = Command(stream_->read());
+        if (cmd == COMMAND_PING) {
+            static constexpr uint8_t responsePong = COMMAND_PING;
+            stream_->write(responsePong);
+        } else {
+            logging::error(F("Bad command from arduino"));
+        }
+    }
 }

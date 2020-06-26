@@ -4,8 +4,8 @@
 #include <string>
 
 
-static constexpr auto AP_SSID = "Wifi SSID";
-static constexpr auto AP_PASSWORD = "WiFi password";
+static constexpr auto AP_SSID = "Greenhouse";
+static constexpr auto AP_PASSWORD = "1234pwd5678";
 
 
 #endif
