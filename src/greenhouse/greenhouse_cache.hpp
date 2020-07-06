@@ -5,9 +5,9 @@
 
 
 struct Measures {
-    int8_t outsideTemperature;
     int8_t yellowTemperature;
     int8_t greenTemperature;
+    int8_t outsideTemperature;
     uint8_t ventStatus;
     uint8_t yellowWindowPercent;
     uint8_t greenWindowPercent;
