@@ -12,10 +12,18 @@ public:
     enum Command: uint8_t {
         COMMAND_PING = '0',
         COMMAND_GET_MEASURES = '1',
+        COMMAND_GET_SETTINGS = '2',
+        COMMANG_SET_SETTINGS = '3',
+        COMMAND_SET_YELLOW_SENSOR_ADDRESS = 0x20,
+        COMMAND_SET_GREEN_SENSOR_ADDRESS = 0x21,
+        COMMAND_SET_OUTSIDE_SENSOR_ADDRESS = 0x22,
+        COMMAND_SET_YELLOW_WINDOW_ADDRESS = 0x23,
+        COMMAND_SET_GREEN_WINDOW_ADDRESS = 0x24,
+        COMMAND_SET_VENT_ADDRESS = 0x25,
     };
 
     ArduinoConnector(Stream* stream);
-    std::vector<uint8_t> query(Command command, int&);
+    std::vector<uint8_t> query(Command command, size_t argumentLength = 0, const uint8_t* argumentData = nullptr);
 
     void loop();
 

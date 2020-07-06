@@ -18,16 +18,24 @@ struct Measures {
 };
 
 
+#pragma pack(push, 1)
 struct Settings
 {
+    uint64_t openingTime;
+    uint64_t temperatureInnercyDelay;
     int8_t openingTemperature;
     int8_t closingTemperature;
+    int8_t ventOnTemperature;
     uint8_t stepsCount;
+    uint8_t summerMode;
+    uint8_t ventMode;
 };
+#pragma pack(pop)
 
 
 struct GreenhouseCache {
     Measures measures;
+    Settings settings;
     String error;
 };
 
