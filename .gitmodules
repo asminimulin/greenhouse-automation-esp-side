@@ -4,3 +4,6 @@
 [submodule "lib/base64_arduino"]
 	path = lib/base64_arduino
 	url = git@github.com:Densaugeo/base64_arduino.git
+[submodule "lib/logging"]
+	path = lib/logging
+	url = git@github.com:asminimulin/lightweight-logging-lib.git

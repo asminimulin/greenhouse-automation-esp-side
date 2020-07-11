@@ -7,10 +7,10 @@
 #include <ESP8266mDNS.h>
 #include <ArduinoJson.h>
 #include <base64.hpp>
+#include <logging.hpp>
 
 #include "greenhouse/greenhouse_cache.hpp"
 #include "connector/arduino_connector.hpp"
-#include "logging/logging.hpp"
 #include "config.hpp"
 
 
@@ -48,7 +48,7 @@ void cacheLoader();
 
 void setup() {
   Serial.begin(57600);
-  logging::setup(logging::NOTHING, &Serial);
+  logging::init(logging::NOTHING, &Serial);
 
   if (CREATE_ACCESS_POINT && USE_EXISTING_NETWORK) {
     WiFi.mode(WIFI_AP_STA);
@@ -80,11 +80,11 @@ void setup() {
   server.on("/api/green-window-address", HTTP_POST, apiSetGreenWindowAddress);
   server.on("/api/vent-address", HTTP_POST, apiSetVentAddress);
   server.begin();
-  if (!MDNS.begin("automation")) {
-    logging::error(F("Failed to start MDNS"));
+  if (!MDNS.begin("Greenhouse")) {
+    logging::error() << F("Failed to start MDNS");
     return;
   }
-  MDNS.addService("greenhouse", "tcp", 80);
+  MDNS.addService("automation", "tcp", 80);
 }
 
 
